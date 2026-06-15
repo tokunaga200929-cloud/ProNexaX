@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ProNexa Scorecard CMS</title>
+  <meta name="theme-color" content="#050607" />
+  <link rel="apple-touch-icon" href="assets/apple-touch-icon.png" />
+  <link rel="apple-touch-icon-precomposed" href="assets/apple-touch-icon.png" />
+  <link rel="icon" href="assets/favicon-32.png" />
+  <link rel="stylesheet" href="cms.css?v=50" />
+</head>
+<body>
+  <div class="cms-shell">
+    <aside class="sidebar">
+      <div class="brand-block">
+        <img src="assets/px-logo-badge.png" alt="PX" />
+        <b>ProNexa X</b>
+        <span>PX GolfCast CMS</span>
+      </div>
+      <nav>
+        <button class="nav-item">▦ ダッシュボード</button>
+        <button class="nav-item active">⚑ ゴルフ場管理</button>
+        <button class="nav-item">◎ スコアカードDB</button>
+        <button class="nav-item">◷ 承認待ち <i>0</i></button>
+        <button class="nav-item">⛓ API連携</button>
+        <button class="nav-item">⚙ 設定</button>
+      </nav>
+      <div class="side-note">
+        <strong>保存先</strong>
+        <span>今までは端末内DB保存でした。v45からFirebase設定を入れるとFirestore共通DBへ保存できます。</span>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div class="search-box">
+          <span>⌕</span>
+          <input id="searchInput" placeholder="ゴルフ場名・楽天GORA IDで検索" />
+        </div>
+        <div class="top-badges">
+          <span>☁ 楽天GORA API連携</span>
+          <span id="firebaseBadge">◉ Firestore未接続</span>
+          <span>＋ 未登録コースをCMSで追加</span>
+        </div>
+        <div class="admin">PX Admin <b>PX</b></div>
+      </header>
+
+      <section class="hero-row">
+        <div>
+          <h1>ProNexa Scorecard CMS</h1>
+          <p>ゴルフ場・コース・スコアカードを管理。AIでまとめたJSONやCSVを貼り付けて一括登録できます。</p>
+        </div>
+        <div class="hero-actions">
+          <button id="exportBtn">JSONを書き出し</button>
+          <button id="clearDraftBtn">入力をクリア</button>
+        </div>
+      </section>
+
+      <section class="grid">
+        
+        <div class="panel firebase-panel">
+          <div class="panel-head"><h2>データベース設定</h2><span id="firebaseState">未接続</span></div>
+          <p class="muted">本番用DBはFirebase Firestoreを使います。<b>firebase-config.js</b> に設定を入れると、CMS保存時に共通DBへ保存されます。</p>
+          <div class="db-mode-box">
+            <strong>保存先</strong>
+            <span id="dbModeText">端末内DBのみ</span>
+          </div>
+          <div class="button-row">
+            <button id="firebaseTestBtn" class="ghost">Firebase接続確認</button>
+            <button id="firebaseSyncBtn" class="primary">端末内DBをFirestoreへ同期</button>
+          </div>
+          <small>Firebase未設定でも端末内には保存できます。ただし他の端末とは共有されません。</small>
+        </div>
+
+        <div class="panel master-panel">
+          <div class="panel-head"><h2>ゴルフ場マスター</h2><span id="saveState">未保存</span></div>
+          <div class="form-grid">
+            <label><small>ゴルフ場名 *</small><input id="courseName" value="" placeholder="例：プレステージカントリークラブ" /></label>
+            <label><small>都道府県</small><input id="prefecture" placeholder="例：栃木県" /></label>
+            <label><small>楽天GORA ID</small><input id="rakutenId" placeholder="例：90107" /></label>
+            <label><small>住所</small><input id="address" placeholder="任意" /></label>
+            <label><small>公式URL</small><input id="officialUrl" placeholder="https://..." /></label>
+            <label><small>ステータス</small><select id="status"><option>確認中</option><option selected>公開</option><option>非公開</option></select></label>
+          </div>
+        </div>
+
+        <div class="panel course-panel">
+          <div class="panel-head"><h2>コース情報</h2></div>
+          <div class="chip-row" id="setChips">
+            <button class="active" data-set="OUT / IN">OUT / IN</button>
+            <button data-set="東 / 西">東 / 西</button>
+            <button data-set="東OUT">東OUT</button>
+            <button data-set="西OUT">西OUT</button>
+          </div>
+          <label class="wide"><small>コース名</small><input id="setName" value="OUT / IN" /></label>
+          <label class="wide"><small>ティー</small><input id="teeName" value="Regular" placeholder="Back / Regular / Front / Ladies" /></label>
+          <div class="stats-row"><div><small>合計ホール</small><b id="totalHoles">18</b></div><div><small>PAR</small><b id="totalPar">72</b></div><div><small>YDS</small><b id="totalYds">0</b></div></div>
+        </div>
+
+        <div class="panel ai-panel">
+          <div class="panel-head"><h2>AI一括登録</h2><span>JSON貼り付け</span></div>
+          <p class="muted">AIにまとめてもらったJSONを貼って、<b>JSONをDBに一括保存</b>を押すだけ。```json```付きでも読み込めます。</p>
+          <textarea id="aiPaste" spellcheck="false" placeholder='例：{"golfCourseName":"〇〇CC","prefecture":"栃木県","rakutenGolfCourseId":"90107","courseName":"OUT / IN","tee":"Regular","holes":[{"hole":1,"par":4,"yds":410,"hdcp":9}]}'></textarea>
+          <div class="button-row">
+            <button id="sampleJsonBtn" class="ghost">サンプルを入れる</button>
+            <button id="parseJsonBtn" class="ghost">JSONを確認</button>
+            <button id="bulkSaveJsonBtn" class="primary">貼り付けJSONを保存</button>
+          </div>
+          <details>
+            <summary>AIに頼む時の文章</summary>
+            <pre>このゴルフ場のスコアカードをProNexa用JSONにしてください。
+説明文は不要。JSONのみ。
+形式：{ golfCourseName, prefecture, rakutenGolfCourseId, status, scorecards:[{ courseName, tee, holes:[{hole,par,yds,hdcp}] }] }</pre>
+          </details>
+        </div>
+
+        <div class="panel csv-panel">
+          <div class="panel-head"><h2>CSV一括インポート</h2><span>Excel対応</span></div>
+          <p class="muted">CSV列：courseName,prefecture,rakutenGolfCourseId,setName,tee,hole,par,yds,hdcp</p>
+          <input id="csvFile" type="file" accept=".csv,text/csv" />
+          <textarea id="csvPaste" spellcheck="false" placeholder="CSVを直接貼り付けてもOK"></textarea>
+          <div class="button-row">
+            <button id="sampleCsvBtn" class="ghost">CSVサンプル</button>
+            <button id="parseCsvBtn" class="primary">CSVを読み込む</button>
+          </div>
+        </div>
+
+        <div class="panel table-panel">
+          <div class="panel-head"><h2>スコアカード入力</h2><span id="currentSetLabel">OUT / IN - Regular</span></div>
+          <div class="bulk-preview-controls" id="bulkPreviewControls" hidden>
+            <label><small>表示コース</small><select id="previewSetSelect"></select></label>
+            <label><small>表示ティー</small><select id="previewTeeSelect"></select></label>
+            <span id="bulkPreviewSummary">一括JSONの確認表示</span>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>HOLE</th><th>PAR</th><th>YDS</th><th>HDCP</th><th>備考</th></tr></thead>
+              <tbody id="holeRows"></tbody>
+            </table>
+          </div>
+          <div class="table-actions">
+            <button id="fillParBtn">PAR標準入力</button>
+            <button id="saveBtn" class="primary big">DBに保存して公開</button>
+          </div>
+          <div class="status" id="statusText">JSONを貼ったら「貼り付けJSONを保存」を押してください。保存済みDB一覧に出れば成功です。</div>
+        </div>
+
+        <div class="panel flow-panel">
+          <div class="panel-head"><h2>承認フロー</h2></div>
+          <div class="flow"><span class="done">仮登録</span><i></i><span class="now">確認中</span><i></i><span>公開</span></div>
+          <textarea id="reviewComment" placeholder="確認メモ：公式スコアカード・ゴルフ場HP・現地カードと照合済み等"></textarea>
+          <button id="approveBtn" class="primary full">公開する</button>
+          <small>公開後、アプリのゴルフ場検索で使えるようになります。</small>
+        </div>
+
+        <div class="panel preview-panel">
+          <div class="panel-head"><h2>アプリ表示プレビュー</h2></div>
+          <div class="phone-preview">
+            <div class="phone-top"><b>PX</b><span id="pvCourse">ゴルフ場名</span><i id="pvTee">Regular</i></div>
+            <div class="course-bg"></div>
+            <div class="pv-card">
+              <div id="pvHoles"></div>
+              <div id="pvPars"></div>
+              <div id="pvYds"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel saved-panel">
+          <div class="panel-head"><h2>保存済みDB</h2><span id="savedCount">0件</span></div>
+          <div class="saved-list" id="savedList"></div>
+        </div>
+      </section>
+    </main>
+  </div>
+  <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore-compat.js"></script>
+  <script src="firebase-config.js?v=49"></script>
+  <script src="cms.js?v=49"></script>
+</body>
+</html>
